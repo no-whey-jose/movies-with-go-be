@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"errors"
 	"net/http"
 )
 
@@ -31,10 +31,34 @@ func (app *application) AllMovies(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) Authenticate(w http.ResponseWriter, r *http.Request) {
+
+	var reqPayload struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	err := app.readJSON(w, r, &reqPayload)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	user, err := app.DB.GetUserByEmail(reqPayload.Email)
+	if err != nil {
+		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
+		return
+	}
+
+	valid, err := user.PasswordMatches(reqPayload.Password)
+	if err != nil || !valid {
+		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
+		return
+	}
+
 	u := jwtUser{
-		ID:        1,
-		FirstName: "Admin",
-		LastName:  "Admin",
+		ID:        user.Id,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
 	}
 
 	tokenPair, err := app.Auth.GenerateTokenPair(&u)
@@ -42,7 +66,8 @@ func (app *application) Authenticate(w http.ResponseWriter, r *http.Request) {
 		app.errorJSON(w, err)
 	}
 
-	log.Println(tokenPair.Token)
+	refreshCookie := app.Auth.GetRefreshCookie(tokenPair.RefreshToken)
+	http.SetCookie(w, refreshCookie)
 
-	w.Write([]byte(tokenPair.Token))
+	app.writeJSON(w, http.StatusAccepted, tokenPair)
 }
