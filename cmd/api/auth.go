@@ -13,7 +13,7 @@ type auth struct {
 	Secret        string
 	TokenExpiry   time.Duration
 	RefreshExpiry time.Duration
-	CookieDoman   string
+	CookieDomain  string
 	CookiePath    string
 	CookieName    string
 }
