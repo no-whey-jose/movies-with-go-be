@@ -51,7 +51,8 @@ func main() {
 		RefreshExpiry: time.Hour * 24,
 		CookiePath:    "/",
 		CookieDomain:  app.CookieDomain,
-		CookieName:    "__Host-refersh_token",
+		// CookieName:    "__Host-refersh_token",
+		CookieName: "refersh_token",
 	}
 
 	log.Println("Starting application server on port", port)
